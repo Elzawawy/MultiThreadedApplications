@@ -8,6 +8,7 @@
 #include "string.h"
 #include <stdlib.h>
 #include <stdio.h>
+
 int getStringLength(char * s){
     int stringlength=0;
     while( *s != '\0')

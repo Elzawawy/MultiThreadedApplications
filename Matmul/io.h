@@ -6,9 +6,9 @@
 
 #ifndef IO_H_
 #define IO_H_
-#define FILE_NAME "input.txt"
+#define INPUT_FILE_NAME "input.txt"
 #define MAX_LINE_LENGTH 100
 
 char* readNextLine(void);
-
+void writeLine(char * line);
 #endif

@@ -6,7 +6,7 @@
  ***/
 #ifndef STRING_H_
 #define STRING_H_
-int getStringlength(char * s);
+int getStringLength(char * s);
 void appendCharToString(char *s, char c);
 void removeLastChar(char *s);
 int stringCompare( char *s1, char *s2 );

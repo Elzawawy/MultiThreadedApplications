@@ -6,8 +6,31 @@
 #include "io.h"
 #include "parser.h"
 #include "mthreadapp.h"
+#include "string.h"
 #include <stdlib.h>
 #include <stdio.h>
+/******** Macro Like function to validate correct size entry *****/
+#define validateInput()                         \
+    do                                          \
+    {                                           \
+        if (getSArrayLength(tokens) != 1)       \
+        {                                       \
+            printf("Error ! Wrong Format !\n"); \
+            return;                             \
+        }                                       \
+    } while (0)
+
+/******** Macro Like function to validate correct array input and compatiable entries *****/
+#define validateArray(num)                              \
+    do                                                  \
+    {                                                   \
+        if (getSArrayLength(tokens) != num)             \
+        {                                               \
+            printf("Error ! InCompatiable Entries!\n"); \
+            return;                                     \
+        }                                               \
+    } while (0)
+
 void main(void)
 {
     char *tokens[64];
@@ -17,26 +40,24 @@ void main(void)
     line = readNextLine();
     //parse line into stream of tokens
     parseLine(line, tokens);
-    //First line is the size of the array input. 
-    arraySize =strtol(*tokens, NULL, 10);
+    //validate input array size.
+    validateInput();
+    //First line is the size of the array input.
+    arraySize = strtol(*tokens, NULL, 10);
     //read line from file
     line = readNextLine();
     //parse line into stream of tokens
     parseLine(line, tokens);
-    //Second line is the array elements. 
+    validateArray(arraySize);
+    //Second line is the array elements.
     long inputArray[arraySize];
-    for(int i=0 ; i<arraySize;i++)
+    for (int i = 0; i < arraySize; i++)
         inputArray[i] = strtol(tokens[i], NULL, 10);
-    //Sorted array stored here.
-    long outputArray[arraySize];
-    mthread_merge_sort(inputArray,arraySize,outputArray);
-    for(int i=0 ; i<arraySize;i++)
-        printf("%ld\n",outputArray[i]);
-    
-
-    
-
-
-
-
+    //The main call to the merge sort method.
+    mthread_merge_sort(inputArray, arraySize);
+    //Print the array now to check that it is sorted.
+    printf("Sorted Array :\n");
+    for (int i = 0; i < arraySize; i++)
+        printf("%ld ", inputArray[i]);
+    printf("\n");
 }

@@ -18,5 +18,5 @@ typedef struct
 
 void mthread_element_matmul(mthread_Matrix* matrix1, mthread_Matrix* matrix2, mthread_Matrix* matrixResult);
 void mthread_row_matmul(mthread_Matrix* matrix1, mthread_Matrix* matrix2, mthread_Matrix* matrixResult);
-void mthread_merge_sort(long * arr, long size,long *resultArr);
+void mthread_merge_sort(long * arr, long size);
 #endif

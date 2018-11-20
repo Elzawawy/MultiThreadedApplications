@@ -7,7 +7,7 @@
 */
 #include "mthreadapp.h"
 #include <pthread.h>
-#include <stdio.h>
+#define NULL ((void *)0)
 
 typedef struct
 {
@@ -23,9 +23,11 @@ typedef struct
 
 mthread_Matrix *Global_matrix1, *Global_matrix2, *Global_matrixresult;
 
-long * Global_in_array, *Global_out_array;
+long * Global_in_array, *Global_temp_array;
 
-void *matmul(void *args)
+/******************** Matrix Multiplication ************************/
+
+void *matmul_element(void *args)
 {
     mthread_matmul_args *thread_data = (mthread_matmul_args *)args;
     long accumlator = 0;
@@ -34,7 +36,7 @@ void *matmul(void *args)
     Global_matrixresult->matrix[thread_data->thread_row][thread_data->thread_column] = accumlator;
 }
 
-void *matmulrow(void *args)
+void *matmul_row(void *args)
 {
     mthread_matmul_args *thread_data = (mthread_matmul_args *)args;
     long accumlator = 0;
@@ -51,47 +53,10 @@ void *matmulrow(void *args)
     
 }
 
-void merge(int p, int q,int r)
-{
-    int k = p ,i = p ,j = q+1;
-	while (i<=q && j<=r){
-		if (Global_in_array[i] < Global_in_array[j])
-			Global_out_array[k++] = Global_in_array[i++];
-		else
-			Global_out_array[k++] = Global_in_array[j++];
-	}
-	for (; i<=q ; i++)
-		Global_out_array[k++] = Global_in_array[i];
-	for (; j<=r ; j++)
-		Global_out_array[k++] = Global_in_array[j];
-
-	for (i= p ; i <= r ;i++)
-		Global_in_array[i] = Global_out_array[i];
-}
-
-void * merge_sort(void * args)
-{
-    mthread_merge_args * thread_data = (mthread_merge_args *)args;
-    int startIndex = thread_data->thread_start;
-    int endIndex = thread_data->thread_end;
-    if( startIndex == endIndex)
-        pthread_exit(0);
-    
-    pthread_t thread1,thread2;
-    int midIndex = (startIndex+endIndex)/2;
-    mthread_merge_args arguments1 = {startIndex, midIndex};
-    mthread_merge_args arguments2 = {midIndex+1,endIndex};
-    pthread_create(&thread1,NULL,merge_sort,(void*) &arguments1);
-    pthread_create(&thread2,NULL,merge_sort,(void*) &arguments2);
-	pthread_join(thread1,NULL);
-	pthread_join(thread2,NULL);
-    merge(startIndex,midIndex,endIndex);
-    pthread_exit(0);
-
-}
-
 void mthread_element_matmul(mthread_Matrix *matrix1, mthread_Matrix *matrix2, mthread_Matrix *matrixResult)
 {
+    //if any NULL Reference. Return.
+    if(matrix1 == NULL || matrix2 == NULL || matrixResult == NULL) return;
     Global_matrix1 = matrix1;
     Global_matrix2 = matrix2;
     Global_matrixresult = matrixResult;
@@ -115,7 +80,7 @@ void mthread_element_matmul(mthread_Matrix *matrix1, mthread_Matrix *matrix2, mt
     //Calling the Thread array to work.
     for (int i = 0; i < thread_num; i++)
     {
-        pthread_create(&threadArray[i], NULL, matmul, (void *)&arguments[i]);
+        pthread_create(&threadArray[i], NULL, matmul_element, (void *)&arguments[i]);
     }
     //Waiting for all the threads to join in the main thread again.
     for (int i = 0; i < thread_num; i++)
@@ -125,6 +90,8 @@ void mthread_element_matmul(mthread_Matrix *matrix1, mthread_Matrix *matrix2, mt
 }
 void mthread_row_matmul(mthread_Matrix *matrix1, mthread_Matrix *matrix2, mthread_Matrix *matrixResult)
 {
+    //if any NULL Reference. Return.
+    if(matrix1 == NULL || matrix2 == NULL || matrixResult == NULL) return;
     Global_matrix1 = matrix1;
     Global_matrix2 = matrix2;
     Global_matrixresult = matrixResult;
@@ -144,7 +111,7 @@ void mthread_row_matmul(mthread_Matrix *matrix1, mthread_Matrix *matrix2, mthrea
     //Calling the Thread array to work.
     for (int i = 0; i < thread_num; i++)
     {
-        pthread_create(&threadArray[i], NULL, matmulrow, (void *)&arguments[i]);
+        pthread_create(&threadArray[i], NULL, matmul_row, (void *)&arguments[i]);
     }
     //Waiting for all the threads to join in the main thread again.
     for (int i = 0; i < thread_num; i++)
@@ -153,13 +120,71 @@ void mthread_row_matmul(mthread_Matrix *matrix1, mthread_Matrix *matrix2, mthrea
     }
 }
 
-void mthread_merge_sort(long * arr, long size,long *resultArr)
+/******************** Merge Sort ************************/
+
+void merge(int start, int mid,int end)
 {
+    int k = start ,i = start ,j = mid+1;
+    //Compare in_array elements and Populate the temp_array elements.
+	while (i<= mid && j<= end){
+		if (Global_in_array[i] < Global_in_array[j])
+			Global_temp_array[k++] = Global_in_array[i++];
+		else
+			Global_temp_array[k++] = Global_in_array[j++];
+	}
+    //if any left elements in left side ,populate in the temp_array
+	for (; i<=mid ; i++)
+		Global_temp_array[k++] = Global_in_array[i];
+    //if any left elements in right side ,populate in the temp_array
+	for (; j<=end ; j++)
+		Global_temp_array[k++] = Global_in_array[j];
+    //copy the temp_array elements in the in_array elements to return it as a sorted array.
+	for (i= start ; i <=end ;i++)
+		Global_in_array[i] = Global_temp_array[i];
+}
+
+void * merge_sort(void * args)
+{
+    //collect needed data from thread arguments passed with creation. 
+    mthread_merge_args * thread_data = (mthread_merge_args *)args;
+    int startIndex = thread_data->thread_start;
+    int endIndex = thread_data->thread_end;
+    int midIndex = (startIndex+endIndex)/2;
+    //One element only. Exit this thread.
+    if( startIndex == endIndex)
+        pthread_exit(0);
+    //Otherwise, Create 2 new threads
+    pthread_t thread1,thread2;
+    //Create 2 arguments structs to pass with creation.
+    mthread_merge_args arguments1 = {startIndex, midIndex};
+    mthread_merge_args arguments2 = {midIndex+1,endIndex};
+    pthread_create(&thread1,NULL,merge_sort,(void*) &arguments1);
+    pthread_create(&thread2,NULL,merge_sort,(void*) &arguments2);
+    //When the 2 children of this parent thread exits. They join.
+	pthread_join(thread1,NULL);
+	pthread_join(thread2,NULL);
+    //Merge the 2 children of this parent thread.
+    merge(startIndex,midIndex,endIndex);
+    //Exit the parent. To return to upper parent.
+    pthread_exit(0);
+
+}
+
+void mthread_merge_sort(long * arr, long size)
+{
+    //If the array is of size 0 or 1, then it is already sorted. Return.
+    if(size == 0 || size == 1) return;
+    //if any NULL Reference. Return.
+    if( arr == NULL ) return;
+    //Create and assign needed varaibles
+    long temp_array[size];
     Global_in_array = arr;
-    Global_out_array = resultArr;
-    mthread_merge_args arguments = {0,size-1};
+    Global_temp_array = temp_array;
+    //Create starting root thread and it's arguments struct to be passed with creation.
     pthread_t start_thread;
+    mthread_merge_args arguments = {0,size-1};
     pthread_create(&start_thread,NULL,merge_sort,(void *) &arguments);
+    //When the root exits, Return.
 	pthread_join(start_thread,NULL);
 
 }

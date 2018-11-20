@@ -10,7 +10,7 @@
 
 char *readNextLine(void)
 {
-    FILE *filePtr = fopen(FILE_NAME, "r");
+    FILE *filePtr = fopen(INPUT_FILE_NAME, "r");
     char *PtrToline = calloc(MAX_LINE_LENGTH,sizeof(char));
     char currentChar;
     static fpos_t currentPosition;
