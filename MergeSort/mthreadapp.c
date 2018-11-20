@@ -15,7 +15,15 @@ typedef struct
     int thread_column;
 } mthread_matmul_args;
 
+typedef struct 
+{
+    int thread_start;
+    int thread_end;
+}mthread_merge_args;
+
 mthread_Matrix *Global_matrix1, *Global_matrix2, *Global_matrixresult;
+
+long * Global_in_array, *Global_out_array;
 
 void *matmul(void *args)
 {
@@ -41,6 +49,45 @@ void *matmulrow(void *args)
         Global_matrixresult->matrix[thread_data->thread_row][j] = accumlator;
     }
     
+}
+
+void merge(int p, int q,int r)
+{
+    int k = p ,i = p ,j = q+1;
+	while (i<=q && j<=r){
+		if (Global_in_array[i] < Global_in_array[j])
+			Global_out_array[k++] = Global_in_array[i++];
+		else
+			Global_out_array[k++] = Global_in_array[j++];
+	}
+	for (; i<=q ; i++)
+		Global_out_array[k++] = Global_in_array[i];
+	for (; j<=r ; j++)
+		Global_out_array[k++] = Global_in_array[j];
+
+	for (i= p ; i <= r ;i++)
+		Global_in_array[i] = Global_out_array[i];
+}
+
+void * merge_sort(void * args)
+{
+    mthread_merge_args * thread_data = (mthread_merge_args *)args;
+    int startIndex = thread_data->thread_start;
+    int endIndex = thread_data->thread_end;
+    if( startIndex == endIndex)
+        pthread_exit(0);
+    
+    pthread_t thread1,thread2;
+    int midIndex = (startIndex+endIndex)/2;
+    mthread_merge_args arguments1 = {startIndex, midIndex};
+    mthread_merge_args arguments2 = {midIndex+1,endIndex};
+    pthread_create(&thread1,NULL,merge_sort,(void*) &arguments1);
+    pthread_create(&thread2,NULL,merge_sort,(void*) &arguments2);
+	pthread_join(thread1,NULL);
+	pthread_join(thread2,NULL);
+    merge(startIndex,midIndex,endIndex);
+    pthread_exit(0);
+
 }
 
 void mthread_element_matmul(mthread_Matrix *matrix1, mthread_Matrix *matrix2, mthread_Matrix *matrixResult)
@@ -104,4 +151,15 @@ void mthread_row_matmul(mthread_Matrix *matrix1, mthread_Matrix *matrix2, mthrea
     {
         pthread_join(threadArray[i], NULL);
     }
+}
+
+void mthread_merge_sort(long * arr, long size,long *resultArr)
+{
+    Global_in_array = arr;
+    Global_out_array = resultArr;
+    mthread_merge_args arguments = {0,size-1};
+    pthread_t start_thread;
+    pthread_create(&start_thread,NULL,merge_sort,(void *) &arguments);
+	pthread_join(start_thread,NULL);
+
 }

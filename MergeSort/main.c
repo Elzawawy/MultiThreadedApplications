@@ -5,6 +5,7 @@
  ***/
 #include "io.h"
 #include "parser.h"
+#include "mthreadapp.h"
 #include <stdlib.h>
 #include <stdio.h>
 void main(void)
@@ -26,6 +27,11 @@ void main(void)
     long inputArray[arraySize];
     for(int i=0 ; i<arraySize;i++)
         inputArray[i] = strtol(tokens[i], NULL, 10);
+    //Sorted array stored here.
+    long outputArray[arraySize];
+    mthread_merge_sort(inputArray,arraySize,outputArray);
+    for(int i=0 ; i<arraySize;i++)
+        printf("%ld\n",outputArray[i]);
     
 
     
